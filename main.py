@@ -1,11 +1,26 @@
 import requests
+import sys
+from datetime import datetime
+
+def format_datetime(date_time: str) -> str:
+    if not date_time:
+        return ""
+    try:
+        dt = datetime.strptime(date_time, "%Y-%m-%dT%H:%M:%SZ")
+        return dt.strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return date_time
 
 def github_user_activity():
-    username = input("Please enter the username: ").strip()
+    if len(sys.argv) < 2:
+        print("Usage: python main.py <username>")
+        sys.exit(1)
+
+    username = sys.argv[1].strip()
 
     if not username:
-        print(f"Error: Username cannot be empty.")
-        return
+        print("Error: Username cannot be empty.")
+        sys.exit(1)
 
     base_url = f"https://api.github.com/users/{username}/events"
     headers = {
@@ -57,7 +72,8 @@ def github_user_activity():
         event_type = event.get("type")
         payload = event.get("payload", {})
         repo_name = event.get("repo", {}).get("name", "Unknown Repo")
-        created_at = event.get("created_at", "")
+        created_at_raw = event.get("created_at", "")
+        created_at = format_datetime(created_at_raw)
         action = payload.get("action", "updated")
 
         match event_type:
@@ -89,7 +105,7 @@ def github_user_activity():
                     print(f"Deleted {ref_type} in {repo_name} on {created_at}")
 
             case "PullRequestEvent":
-               print(f"{action.capitalize()} a pull request in {repo_name} on {created_at}")
+                print(f"{action.capitalize()} a pull request in {repo_name} on {created_at}")
 
             case "ForkEvent":
                 forkee = payload.get("forkee", {})
